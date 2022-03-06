@@ -1,3 +1,4 @@
+//go:build !walrus
 // +build !walrus
 
 package rfm69

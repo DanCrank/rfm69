@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ecc1/rfm69"
+	"github.com/DanCrank/rfm69"
 )
 
 func main() {
