@@ -1,4 +1,4 @@
-module github.com/ecc1/rfm69
+module github.com/DanCrank/rfm69
 
 go 1.13
 
