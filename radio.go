@@ -48,6 +48,36 @@ func (r *Radio) Send(data []byte) {
 	r.setMode(StandbyMode)
 }
 
+// Send transmits the given packet.
+// The RadioHead protocol uses the first five bytes of the payload as a header:
+// LENGTH, TO, FROM, ID, FLAGS. The LENGTH value is inclusive of the last four header
+// bytes but exclusive of the LENGTH byte (so the actual LENGTH is payload + 4).
+func (r *Radio) SendRadioHead(data []byte, to byte, from byte, id byte, flags byte) {
+	if r.Error() != nil {
+		return
+	}
+	if len(data) > maxPacketSize {
+		log.Panicf("attempting to send %d-byte packet", len(data))
+	}
+	if debug {
+		log.Printf("sending %d-byte packet in %s state", len(data), r.State())
+	}
+	// Add RadioHead headers
+	r.txPacket[0] = byte(len(data)) + 4
+	r.txPacket[1] = to
+	r.txPacket[2] = from
+	r.txPacket[3] = id
+	r.txPacket[4] = flags
+	copy(r.txPacket[:5], data)
+	// Prepare for auto-transmit.
+	// (Automode from/to sleep mode is not reliable.)
+	r.clearFIFO()
+	r.setMode(StandbyMode)
+	r.hw.WriteRegister(RegAutoModes, EnterConditionFifoNotEmpty|ExitConditionFifoEmpty|IntermediateModeTx)
+	r.transmit(r.txPacket)
+	r.setMode(StandbyMode)
+}
+
 func (r *Radio) transmit(data []byte) {
 	avail := fifoSize
 	for r.Error() == nil {
@@ -138,6 +168,52 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 			return r.finishRX(rssi)
 		}
 		r.err = r.receiveBuffer.WriteByte(c)
+	}
+	return nil, rssi
+}
+
+// ReceiveRadioHead listens with the given timeout for an incoming packet.
+// It returns the packet and the associated RSSI.
+// The RadioHead protocol uses the first five bytes of the payload as a header:
+// LENGTH, TO, FROM, ID, FLAGS. The LENGTH value is inclusive of the last four header
+// bytes but exclusive of the LENGTH byte (so the actual LENGTH is payload + 4).
+// The packet is returned from this function with the four header bytes at the
+// head, so the caller can read and/or discard them.
+func (r *Radio) ReceiveRadioHead(timeout time.Duration) ([]byte, int) {
+	if r.Error() != nil {
+		return nil, 0
+	}
+	r.hw.WriteRegister(RegAutoModes, 0)
+	r.setMode(ReceiverMode)
+	defer r.setMode(SleepMode)
+	if debug {
+		log.Printf("waiting for interrupt in %s state", r.State())
+	}
+	r.hw.AwaitInterrupt(timeout)
+	rssi := r.ReadRSSI()
+	length := -1
+	for r.Error() == nil {
+		if r.fifoEmpty() {
+			if timeout <= 0 {
+				break
+			}
+			time.Sleep(byteDuration)
+			timeout -= byteDuration
+			continue
+		}
+		c := r.hw.ReadRegister(RegFifo)
+		if r.Error() != nil {
+			break
+		}
+		if length == -1 {
+			length = int(c)
+		} else {
+			r.err = r.receiveBuffer.WriteByte(c)
+			if r.receiveBuffer.Len() == length {
+				// End of packet.
+				return r.finishRX(rssi)
+			}
+		}
 	}
 	return nil, rssi
 }

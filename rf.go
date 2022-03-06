@@ -29,6 +29,18 @@ func (r *Radio) ReadConfiguration(useBurst bool) []byte {
 	return config
 }
 
+func (r *Radio) DumpConfiguration(useBurst bool) {
+	regs := r.ReadConfiguration(useBurst)
+	log.Println("     0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F")
+	for i := 0; i < len(regs); i += 16 {
+		line := fmt.Sprintf("%02x:", i)
+		for j := 0; j < 16 && i+j < len(regs); j++ {
+			line += fmt.Sprintf(" %02x", regs[i+j])
+		}
+		log.Println(line)
+	}
+}
+
 // WriteConfiguration writes the given register configuration to the radio,
 // using either burst-mode or individual SPI writes.
 func (r *Radio) WriteConfiguration(config []byte, useBurst bool) {
