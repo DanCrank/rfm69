@@ -74,10 +74,8 @@ func (r *Radio) transmit(data []byte) {
 		if (r.hw.ReadRegister(RegIrqFlags2) & 0x08) != 0 {
 			break
 		}
-		//log.Print("Transmit not done yet")
 		time.Sleep(byteDuration)
 	}
-	log.Print("Transmit done!")
 }
 
 func (r *Radio) fifoEmpty() bool {
