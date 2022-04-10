@@ -84,14 +84,6 @@ func (r *Radio) fifoEmpty() bool {
 	return r.hw.ReadRegister(RegIrqFlags2)&FifoNotEmpty == 0
 }
 
-func (r *Radio) fifoFull() bool {
-	return r.hw.ReadRegister(RegIrqFlags2)&FifoFull != 0
-}
-
-func (r *Radio) fifoThresholdExceeded() bool {
-	return r.hw.ReadRegister(RegIrqFlags2)&FifoLevel != 0
-}
-
 func (r *Radio) clearFIFO() {
 	r.hw.WriteRegister(RegIrqFlags2, FifoOverrun)
 }
