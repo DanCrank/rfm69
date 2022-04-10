@@ -88,6 +88,22 @@ func (r *Radio) clearFIFO() {
 	r.hw.WriteRegister(RegIrqFlags2, FifoOverrun)
 }
 
+// ReceiveRadioHead does the same action as the Receive() function
+// below, but throws away the four RadioHead flag bytes for you.
+// just for symmetry, really.
+func (r *Radio) ReceiveRadioHead(timeout time.Duration) ([]byte, int) {
+	packet, rssi := r.Receive(timeout)
+	if packet == nil {
+		log.Print("Nil packet - rejecting")
+		return nil, rssi
+	}
+	if len(packet) < 5 {
+		log.Print("Invalid packet length - rejecting")
+		return nil, rssi
+	}
+	return packet[4:], rssi
+}
+
 // Receive listens with the given timeout for an incoming packet.
 // It returns the packet and the associated RSSI.
 // The RadioHead protocol uses the first five bytes of the payload as a header:
