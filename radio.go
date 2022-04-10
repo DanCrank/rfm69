@@ -28,7 +28,7 @@ func init() {
 // The RadioHead protocol uses the first five bytes of the payload as a header:
 // LENGTH, TO, FROM, ID, FLAGS. The LENGTH value is inclusive of the last four header
 // bytes but exclusive of the LENGTH byte (so the actual LENGTH is payload + 4).
-func (r *Radio) Send(data []byte, to byte, from byte, id byte, flags byte) {
+func (r *Radio) SendRadioHead(data []byte, to byte, from byte, id byte, flags byte) {
 	if r.Error() != nil {
 		return
 	}
@@ -48,6 +48,12 @@ func (r *Radio) Send(data []byte, to byte, from byte, id byte, flags byte) {
 	r.setMode(StandbyMode)
 	r.transmit(r.txPacket[:byte(len(data))+5])
 	r.setMode(StandbyMode)
+}
+
+// keep the standard Radio interface by implementing a Send() method
+// with the default RadioHead header values (0xFF = broadcast)
+func (r *Radio) Send(data []byte) {
+	r.SendRadioHead(data, 0xFF, 0xFF, 0x00, 0x00)
 }
 
 func (r *Radio) transmit(data []byte) {
@@ -160,7 +166,7 @@ func (r *Radio) finishRX(rssi int) ([]byte, int) {
 // (This could be further optimized by using an Automode to go directly
 // from TX to RX, rather than returning to standby in between.)
 func (r *Radio) SendAndReceive(data []byte, timeout time.Duration) ([]byte, int) {
-	r.Send(data, 0xFF, 0xFF, 0x00, 0x00)
+	r.Send(data)
 	if r.Error() != nil {
 		return nil, 0
 	}
