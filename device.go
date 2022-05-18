@@ -68,7 +68,6 @@ func Open() *Radio {
 	r := &Radio{hw: radio.Open(hwFlavor{})}
 	v := r.Version()
 	if r.Error() != nil {
-		r.hw.Close()
 		return r
 	}
 	if v != hwVersion {

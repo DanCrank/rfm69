@@ -3,7 +3,7 @@
 
 package rfm69
 
-// Configuration for Raspberry Pi Zero W with Adafruit RFM69HCW bonnet:
+// Configuration for Raspberry Pi 4B running Pi-Top OS with Adafruit RFM69HCW bonnet:
 // https://www.adafruit.com/product/4072
 // https://learn.adafruit.com/adafruit-radio-bonnets/pinouts
 
